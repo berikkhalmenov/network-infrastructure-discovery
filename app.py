@@ -1,60 +1,52 @@
 from flask import Flask, jsonify, request
 
+from discovery import correlate_devices, normalize_inventory
+from sources import (
+    get_dcim_devices,
+    get_inventory_file_devices,
+    get_network_api_devices,
+)
+
 app = Flask(__name__)
 
 
-# -------------------------------------------------------------------
-# Demo inventory
-# All addresses and hostnames are fictional and safe for public use.
-# -------------------------------------------------------------------
+def build_inventory() -> list[dict]:
+    """
+    Collect demo data from multiple infrastructure sources,
+    normalize it and correlate duplicate devices.
+    """
 
-DEVICES = [
-    {
-        "id": 1,
-        "hostname": "core-sw-01",
-        "management_ip": "192.0.2.10",
-        "vendor": "Cisco",
-        "platform": "NX-OS",
-        "site": "DC-01",
-        "role": "core-switch",
-        "source": "network-api",
-    },
-    {
-        "id": 2,
-        "hostname": "edge-fw-01",
-        "management_ip": "192.0.2.20",
-        "vendor": "Fortinet",
-        "platform": "FortiOS",
-        "site": "DC-01",
-        "role": "firewall",
-        "source": "network-api",
-    },
-    {
-        "id": 3,
-        "hostname": "branch-rtr-01",
-        "management_ip": "198.51.100.10",
-        "vendor": "Huawei",
-        "platform": "VRP",
-        "site": "BRANCH-01",
-        "role": "wan-router",
-        "source": "inventory-file",
-    },
-    {
-        "id": 4,
-        "hostname": "access-sw-01",
-        "management_ip": "198.51.100.20",
-        "vendor": "HPE",
-        "platform": "Comware",
-        "site": "BRANCH-01",
-        "role": "access-switch",
-        "source": "dcim",
-    },
-]
+    network_api = normalize_inventory(
+        get_network_api_devices(),
+        "network-api",
+    )
+
+    dcim = normalize_inventory(
+        get_dcim_devices(),
+        "dcim",
+    )
+
+    inventory_file = normalize_inventory(
+        get_inventory_file_devices(),
+        "inventory-file",
+    )
+
+    devices = correlate_devices(
+        network_api,
+        dcim,
+        inventory_file,
+    )
+
+    return sorted(
+        devices,
+        key=lambda device: device["management_ip"],
+    )
 
 
 @app.route("/health", methods=["GET"])
 def health():
-    """Simple application health check."""
+    """Application health check."""
+
     return jsonify(
         {
             "status": "ok",
@@ -65,20 +57,30 @@ def health():
 
 @app.route("/api/devices", methods=["GET"])
 def get_devices():
-    """Return the complete normalized device inventory."""
+    """Return the normalized and correlated inventory."""
+
+    devices = build_inventory()
+
     return jsonify(
         {
-            "count": len(DEVICES),
-            "devices": DEVICES,
+            "count": len(devices),
+            "devices": devices,
         }
     )
 
 
-@app.route("/api/devices/<int:device_id>", methods=["GET"])
-def get_device(device_id):
-    """Return one device by its inventory ID."""
+@app.route("/api/devices/<path:management_ip>", methods=["GET"])
+def get_device(management_ip):
+    """Return one device by management IP address."""
+
+    devices = build_inventory()
+
     device = next(
-        (item for item in DEVICES if item["id"] == device_id),
+        (
+            item
+            for item in devices
+            if item["management_ip"] == management_ip
+        ),
         None,
     )
 
@@ -90,8 +92,13 @@ def get_device(device_id):
 
 @app.route("/api/search", methods=["GET"])
 def search_devices():
-    """Search inventory by hostname, IP, vendor, site or role."""
+    """
+    Search inventory by hostname, IP address,
+    vendor, platform, site, role or source.
+    """
+
     query = request.args.get("q", "").strip().lower()
+    devices = build_inventory()
 
     if not query:
         return jsonify(
@@ -112,14 +119,21 @@ def search_devices():
         "source",
     )
 
-    results = [
-        device
-        for device in DEVICES
-        if any(
-            query in str(device.get(field, "")).lower()
+    results = []
+
+    for device in devices:
+        searchable_values = [
+            str(device.get(field, "")).lower()
             for field in searchable_fields
+        ]
+
+        searchable_values.extend(
+            str(source).lower()
+            for source in device.get("sources", [])
         )
-    ]
+
+        if any(query in value for value in searchable_values):
+            results.append(device)
 
     return jsonify(
         {
@@ -132,14 +146,37 @@ def search_devices():
 
 @app.route("/api/stats", methods=["GET"])
 def get_stats():
-    """Return basic statistics about the discovered inventory."""
-    sites = sorted({device["site"] for device in DEVICES})
-    vendors = sorted({device["vendor"] for device in DEVICES})
-    sources = sorted({device["source"] for device in DEVICES})
+    """Return basic statistics for the discovered inventory."""
+
+    devices = build_inventory()
+
+    sites = sorted(
+        {
+            device["site"]
+            for device in devices
+            if device.get("site")
+        }
+    )
+
+    vendors = sorted(
+        {
+            device["vendor"]
+            for device in devices
+            if device.get("vendor")
+        }
+    )
+
+    sources = sorted(
+        {
+            source
+            for device in devices
+            for source in device.get("sources", [])
+        }
+    )
 
     return jsonify(
         {
-            "devices": len(DEVICES),
+            "devices": len(devices),
             "sites": len(sites),
             "vendors": len(vendors),
             "sources": len(sources),
