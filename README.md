@@ -24,6 +24,19 @@ The goal of this project is to automatically collect this information and build 
 
 ---
 
+## ⚙️ Key Features
+
+- Multi-source network infrastructure discovery
+- Inventory normalization into a unified data model
+- Device correlation across multiple data sources
+- REST API for infrastructure inventory access
+- Search across hostnames, IP addresses, vendors, platforms and sites
+- Infrastructure statistics and source visibility
+- Modular architecture for adding new discovery sources
+- Sanitized demo data suitable for public environments
+
+---
+
 ## 🏗 Architecture
 
 ```text
