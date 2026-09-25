@@ -37,6 +37,24 @@ The goal of this project is to automatically collect this information and build 
 
 ---
 
+## 🧩 What This Project Demonstrates
+
+This project is intended to demonstrate practical network engineering and automation skills, including:
+
+- **Python for Network Engineering** — collection, normalization and processing of infrastructure data
+- **REST API Integration** — interaction with network management, inventory and infrastructure platforms
+- **Network Source of Truth** — correlation of data from multiple systems into a unified inventory
+- **DCIM / IPAM Integration** — working with platforms such as NetBox
+- **Network Management Integration** — API-driven interaction with platforms such as FortiManager
+- **Linux Operations** — deployment and operation of network automation services on Linux
+- **Data Modeling** — normalization of heterogeneous network information into consistent structures
+- **Infrastructure Search** — fast lookup of devices, addresses, vendors, platforms and sites
+- **Automation Architecture** — modular design that can be extended with additional discovery sources
+
+The overall engineering goal is to move network operations from isolated manual workflows toward **searchable, API-driven and automation-ready infrastructure data**.
+
+---
+
 ## 🏗 Architecture
 
 ```text
@@ -74,7 +92,14 @@ The goal of this project is to automatically collect this information and build 
 
 ---
 
+## 🛠 Technology Stack
 
+**Core:** Python · REST API · Linux  
+**Infrastructure:** NetBox · FortiManager · DCIM / IPAM  
+**Data:** Normalized infrastructure inventory  
+**Interfaces:** REST API · Web UI
+
+---
 
 ## 🚀 Quick Start
 
@@ -85,7 +110,7 @@ git clone https://github.com/berikkhalmenov/network-infrastructure-discovery.git
 cd network-infrastructure-discovery
 ```
 
-Create a virtual environment and install dependencies:
+Create a virtual environment:
 
 ```bash
 python -m venv .venv
@@ -152,5 +177,17 @@ Example:
 ```bash
 curl http://127.0.0.1:5000/api/devices
 ```
+
+---
+
+## 🔐 Public Demo & Security
+
+This repository is designed as a **sanitized portfolio implementation**.
+
+- No production credentials are included
+- No production IP addresses or hostnames are included
+- No private infrastructure configuration is included
+- Example infrastructure data is fictional
+- Secrets should be provided through environment variables or external secret-management mechanisms in real deployments
 
 > All IP addresses, hostnames and infrastructure data in this repository are fictional and intended for demonstration purposes only.
